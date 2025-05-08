@@ -1,27 +1,28 @@
 import tkinter as tk  # GUI 라이브러리
+from tkinter import * #확인창
 from tkinter import messagebox #확인창
 from collections import deque
 from tkinter import colorchooser #그 뭐냐 컬러 팔레트래
+from PIL import Image, ImageTk
 
 root = tk.Tk()  # 창 생성
-root.geometry("1100x800")  # 창 크기
+root.geometry("1100x795")  # 창 크기
 root.resizable(False, False)
 root.title("Draw Image")
 
-PIXEL_SIZE = 15
 #44*47
 CANVAS_WIDTH = 44
 CANVAS_HEIGHT = 47
+PIXEL_SIZE = 15
 
 HEAD_HEIGHT = 17
 BODY_HEIGHT = 22
 FOOT_HEIGHT = 8
 
-grid_colors = [['#d4d5d6' for _ in range(CANVAS_WIDTH)] for _ in range(CANVAS_HEIGHT)]
-drag_log = [] #현재 진행상황
+grid_colors = [["empty" for _ in range(CANVAS_WIDTH)] for _ in range(CANVAS_HEIGHT)]
+drag_log = [] #선 저장
 
 fill_mode = False #채우기
-
 start_drag = False
 end_drag = False
 
@@ -29,27 +30,39 @@ is_there_pixel_head = False
 is_there_pixel_body = False
 is_there_pixel_foot = False
 
+isOnEraser = False
+isOnGuide = True
 linked_line = False
 
 current_color = 'black' #현재 색상
 
+perfect = False
+#기본 공룡 이미지 가져오기
+nomal_dino_image = Image.open("./images/guide_dino.png").convert("RGBA")
+scale = 2
+resized_image = nomal_dino_image.resize(
+    (44*PIXEL_SIZE, 47*PIXEL_SIZE),
+    Image.NEAREST
+)
+nomal_dino_image = ImageTk.PhotoImage(resized_image)
+
 #============================================프레임==============================================
 
 #오른쪽 프레임 (캔버스)
-right_frame = tk.Frame(root, bg='#447d38', width=CANVAS_WIDTH * PIXEL_SIZE)
+right_frame = tk.Frame(root, bg='#d4be00', width=CANVAS_WIDTH * PIXEL_SIZE)
 right_frame.grid(row=1, column=1)
 right_frame.grid_propagate(False)
 
 #위 프레임
-top_frame = tk.Frame(root, height=40, bg="#97ff82")
+top_frame = tk.Frame(root, height=40, bg="#fff86e")
 top_frame.grid(row=0, column=0, columnspan=2, sticky="ew") #es -> 양옆으로, ns -> 위아래로
 
 #아래 프레임
-bottom_frame = tk.Frame(root, height=40, bg="#97ff82")
+bottom_frame = tk.Frame(root, height=40, bg="#fff86e")
 bottom_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
 
 #왼 프레임
-left_frame = tk.Frame(root, width=400, bg="#97ff82")
+left_frame = tk.Frame(root, width=400, bg="#fff86e")
 left_frame.grid(row=1, column=0, sticky="ns")
 left_frame.grid_propagate(False)  # 크기 고정
 
@@ -96,8 +109,13 @@ def cheak_text(str1, c1, str2, c2, str3, c3, str4, c4):
 canvas = tk.Canvas(right_frame, width=CANVAS_WIDTH * PIXEL_SIZE, height=CANVAS_HEIGHT * PIXEL_SIZE, bg='light gray', bd=0, highlightthickness=0)
 canvas.pack(padx=20, pady=5)
 
+
+image_id = canvas.create_image(0, 0, image=nomal_dino_image, anchor="nw")
+
 root.grid_columnconfigure(0, weight=0)  # 왼쪽 프레임
 root.grid_columnconfigure(1, weight=1)  # 캔버스
+
+
 
 #그리드 생성
 def show_grid():
@@ -106,29 +124,51 @@ def show_grid():
             canvas.create_rectangle(i * PIXEL_SIZE, j * PIXEL_SIZE,
                                      (i + 1) * PIXEL_SIZE, (j + 1) * PIXEL_SIZE,
                                      outline='', fill='#d4d5d6')
+
 #그림 그리기(클릭, 드래그)
 def drawing_grid(event):
     x = event.x // PIXEL_SIZE
-    y = event.y // PIXEL_SIZE  #이거 주석 아님
-    if 0 <= x < CANVAS_WIDTH and 0 <= y < CANVAS_HEIGHT:
-        if fill_mode:  # 채우기 모드일 때만 flood fill
-            target_color = grid_colors[y][x]
+    y = event.y // PIXEL_SIZE
+
+    if not (0 <= x < CANVAS_WIDTH and 0 <= y < CANVAS_HEIGHT): #캔버스 밖에 시도하면 끝
+        return
+
+    if fill_mode:#색 채우기 flood fill호출
+        target_color = grid_colors[y][x]
+        if current_color != '#d4d5d6':#현재 지우개가 선택되지 않았으면
             if target_color != current_color:
-                flood_fill(x, y, target_color, current_color)
+                flood_fill(x, y, target_color, current_color, "draw")
+        else:#현재 지우개면
+            cheaking_cantFill_box()
+    else:
+        if current_color == '#d4d5d6':#지우개
+            grid_colors[y][x] = "empty"
+            #그린 도형만 delete
+            overlapping = canvas.find_overlapping(
+                x * PIXEL_SIZE, y * PIXEL_SIZE,
+                (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE
+            )
+            for item in overlapping:
+                if "draw" in canvas.gettags(item):
+                    canvas.delete(item)
+
+        # 기본 그리기 모드
         else:
             grid_colors[y][x] = current_color
             canvas.create_rectangle(
                 x * PIXEL_SIZE, y * PIXEL_SIZE,
                 (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE,
-                fill=current_color, outline=""
+                fill=current_color, outline="",
+                tags="draw"  #
             )
+
 
 #선 연결 확인
 def cheak_linked_line(start_y, end_y):
     for y in range(start_y, end_y):
         has_pixel = False
         for x in range(CANVAS_WIDTH):
-            if grid_colors[y][x] != '#d4d5d6':
+            if grid_colors[y][x] != "empty":
                 has_pixel = True
                 break  #픽셀이 있으면 멈춤
         if not has_pixel:
@@ -139,63 +179,64 @@ def cheak_linked_line(start_y, end_y):
 def entrie_del():
     for y in range(CANVAS_HEIGHT):
         for x in range(CANVAS_WIDTH):
-            grid_colors[y][x] = '#d4d5d6'
+            grid_colors[y][x] = "empty"
             canvas.create_rectangle(
                 x * PIXEL_SIZE, y * PIXEL_SIZE,
                 (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE,
                 fill='#d4d5d6', outline=""
             )
+    canvas.tag_raise(image_id)
 
 
 #채우기 로직
-def flood_fill(x, y, target_color, fill_color):
-    if target_color == fill_color:
-        return   #이미 갘은 색
-
-    queue = deque()
-    queue.append((x, y))
-
-    while queue:
-        cx, cy = queue.popleft()
-
-        # 범위 체크
-        if cx < 0 or cx >= CANVAS_WIDTH or cy < 0 or cy >= CANVAS_HEIGHT:
+def flood_fill(x, y, target_color, replacement_color, tags):
+    if target_color == replacement_color:
+        return
+    stack = [(x, y)]
+    while stack:
+        cx, cy = stack.pop()
+        if not (0 <= cx < CANVAS_WIDTH and 0 <= cy < CANVAS_HEIGHT):
             continue
-        # 다른 색이면 무시
         if grid_colors[cy][cx] != target_color:
             continue
 
-        # 색 칠하기
-        grid_colors[cy][cx] = fill_color
+        grid_colors[cy][cx] = replacement_color
+        # 여기에 tags="draw" 추가!
         canvas.create_rectangle(
-            cx * PIXEL_SIZE, cy * PIXEL_SIZE,
-            (cx + 1) * PIXEL_SIZE, (cy + 1) * PIXEL_SIZE,
-            fill=fill_color, outline=""
+            cx*PIXEL_SIZE, cy*PIXEL_SIZE,
+            (cx+1)*PIXEL_SIZE, (cy+1)*PIXEL_SIZE,
+            fill=replacement_color, outline="", tags="draw"
         )
-        #4방
-        queue.append((cx + 1, cy))
-        queue.append((cx - 1, cy))
-        queue.append((cx, cy + 1))
-        queue.append((cx, cy - 1))
+
+        stack.extend([
+            (cx+1, cy), (cx-1, cy),
+            (cx, cy+1), (cx, cy-1),
+        ])
 
 #행에 픽셀이 그려져 있는지 확인
 def check_y_properly_drawn(start_y, end_y):
     for y in range(start_y, end_y):
         for x in range(CANVAS_WIDTH):
-            if grid_colors[y][x] != '#d4d5d6':
+            if grid_colors[y][x] != "empty":
                 return True
     return False
 
 def check_x_properly_drawn(x):
     for y in range(CANVAS_HEIGHT):
-        if grid_colors[y][x] != '#d4d5d6':
+        if grid_colors[y][x] != "empty":
              return True
     return False
 
+save_button = tk.Button(root, text="확인!", command="", width=5, height=1, font=("HY헤드라인M", 15), fg="green")
+
 # 적절한 그림 조절 루프
-def ccc():
+def step1():
     global is_there_pixel_head, is_there_pixel_body, is_there_pixel_foot, linked_line #전역 변수 사용
     #is_there_pixel_head = check_properly_drawn(0, 16)
+    if(is_there_pixel_head and is_there_pixel_body and is_there_pixel_foot and linked_line):
+        save_button.place(x=292, y=245)  # 화면에 띄우기 forget()
+    else:
+        save_button.place_forget()
 
     if cheak_linked_line(5, 45):
         linked_line = True
@@ -203,7 +244,7 @@ def ccc():
         c4 = "green"
     else:
         linked_line = False
-        str4 = "✕ 선이 연결되야 합니다!"
+        str4 = "✕ 선이 연결되어야 합니다!"
         c4 = "red"
 
     if check_y_properly_drawn(0, 4):
@@ -234,11 +275,11 @@ def ccc():
 
     # 최종적으로 한 번만 호출
     cheak_text(str1, c1, str2, c2, str3, c3, str4, c4)
-    root.after(100, ccc)
+    root.after(80, step1)
 
-ccc()
+step1()
 #클릭 캔버스랑 연결
-canvas.bind("<B1-Motion>", drawing_grid)#
+canvas.bind("<B1-Motion>", drawing_grid)
 canvas.bind("<Button-1>", drawing_grid)
 
 
@@ -267,11 +308,26 @@ def on_fill_mode():
     else:
         fill_button.config(bg="SystemButtonFace")
 
-def cheaking_reset():
+def on_guide():
+    global isOnGuide
+    isOnGuide = not isOnGuide
+    if isOnGuide:
+        guide_button.config(bg="gray")
+        canvas.itemconfigure(image_id, state='normal')
+    else:
+        guide_button.config(bg="SystemButtonFace")
+        canvas.itemconfigure(image_id, state='hidden')
+
+def cheaking_reset_box():
     response = messagebox.askyesno("잠시만요!", "그린것을 모두 초기화합니까?")
     if response:
         entrie_del()
 
+def cheaking_cantFill_box():
+    messagebox.askyesno("잠시만요!", "지우개는 채울 수 없어요")
+
+def save_Line():
+    global line
 # 버튼 여러 개 넣기 (예: 6개를 2행 3열로)
 colors = ["#ffb0b0", "#ff5959", "#ff0000", "#b50000", "#6b0000",
           "#ffc99e", "#ff9947", "#ff7200", "#b55100", "#662e00",
@@ -293,14 +349,20 @@ def click_color_button(color):
     global current_color
     current_color = color
 
-button = tk.Button(color_frame, text="지우개", command=choose_eraser, width=7, height=2)
-button.grid(row=6, column=4, padx=5, pady=5)
+eraser_button = tk.Button(color_frame, text="지우개", command=choose_eraser, width=7, height=2)
+eraser_button.grid(row=6, column=4, padx=5, pady=5)
+
 button = tk.Button(color_frame, text="팔레트", command=choose_color, width=7, height=2)
 button.grid(row=7, column=0, padx=5, pady=5)
+
 fill_button = tk.Button(color_frame, text="채우기", command=on_fill_mode, width=7, height=2)
 fill_button.grid(row=7, column=1, padx=5, pady=5)
-button = tk.Button(color_frame, text="초기화", command=cheaking_reset, width=7, height=2)
+
+button = tk.Button(color_frame, text="초기화", command=cheaking_reset_box, width=7, height=2)
 button.grid(row=7, column=2, padx=5, pady=5)
+
+guide_button = tk.Button(color_frame, text="가이드", command=on_guide, width=7, height=2, bg="gray")
+guide_button.grid(row=7, column=3, padx=5, pady=5)
 
 
 #나누어진 각 영역 출력
@@ -309,9 +371,6 @@ print(f"Head part: {head_part}")
 print(f"Body part: {body_part}")
 print(f"Foot part: {foot_part}")
 
-
-
-
-# 그리드 그리기
-show_grid()
+show_grid()#그리드 그리기
+canvas.tag_raise(image_id)#가이드 이미지
 root.mainloop()
