@@ -1,3 +1,4 @@
+#공룡 그림 확인창 (없어도 되는데 퀄리티 업을 위해 존재 (지연))
 import tkinter as tk
 from PIL import Image, ImageTk, ImageOps
 

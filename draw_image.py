@@ -1,3 +1,4 @@
+#공룡 커스텀 그리는 창 (지연)
 import tkinter as tk  # GUI 라이브러리
 from tkinter import messagebox #확인창
 from tkinter import colorchooser #그 뭐냐 컬러 팔레트래

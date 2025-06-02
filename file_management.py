@@ -1,3 +1,4 @@
+#커스텀 이미지 외곽선 추가해서 저장및 불러오는 기능 (지연)
 from PIL import Image, ImageDraw, ImageFilter
 import os
 
