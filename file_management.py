@@ -47,10 +47,10 @@ def save_image(grid_colors, block_size=1):
     #왼발 위로
     moved_grid1 = copy.deepcopy(grid_colors)
     for y in range(41, 45): #3칸을 한칸 위로
-        for x in range(0, 19): #가로 0~19
+        for x in range(0, 18): #가로 0~18
             moved_grid1[y - 1][x] = grid_colors[y][x]
     #아래 공백
-    for x in range(0, 19):
+    for x in range(0, 18):
         moved_grid1[44][x] = "empty"
 
     #왼발 올라간 그림 저장
@@ -59,7 +59,7 @@ def save_image(grid_colors, block_size=1):
     #오른발 위로
     moved_grid2 = copy.deepcopy(grid_colors)
     for y in range(41, 45):  #3칸을 한칸 위로
-        for x in range(19, 42):  #가로 19~42
+        for x in range(18, 42):  #가로 19~42
             moved_grid2[y - 1][x] = grid_colors[y][x]
     #아래 공백
     for x in range(20, 42):
