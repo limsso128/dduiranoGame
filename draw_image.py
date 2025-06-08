@@ -7,9 +7,8 @@ from PIL import Image, ImageTk
 from file_management import save_image
 
 root = tk.Tk()  # 창 생성
-root.geometry("1100x795+0+0")
+root.geometry("1100x765+0+0")
 root.overrideredirect(False)  # True : 창의 기본 타이틀바 없애기
-root.resizable(False, False)
 root.title("Draw Image")
 
 root.resizable(False, False)  #창 크기 조정 불가
@@ -19,6 +18,8 @@ CANVAS_WIDTH = 42
 CANVAS_HEIGHT = 45
 PIXEL_SIZE = 15
 
+
+#세로 41 ~ 가로 18 왼발, " ~ 가로 20 ~ 마지막까지 오른발
 HEAD_HEIGHT = 17
 BODY_HEIGHT = 22
 FOOT_HEIGHT = 8
@@ -26,7 +27,7 @@ FOOT_HEIGHT = 8
 grid_colors = [["empty" for _ in range(CANVAS_WIDTH)] for _ in range(CANVAS_HEIGHT)]
 draw_log = [] #선 저장 (x, y, 색)
 
-fill_mode = False #채우기
+
 
 start_drag = False
 end_drag = False
@@ -35,8 +36,10 @@ is_there_pixel_head = False
 is_there_pixel_body = False
 is_there_pixel_foot = False
 
+fill_mode = False #채우기
 isOnEraser = False
 isOnGuide = True
+
 linked_line = False
 
 current_color = 'black' #현재 색상
@@ -78,7 +81,7 @@ guide_frame.pack_propagate(False)
 
 #툴 프레임
 color_frame = tk.Frame(left_frame, bg="white", width=340, height=400)
-color_frame.place(x=30, y= 290)
+color_frame.place(x=30, y= 275)
 color_frame.pack_propagate(False)
 
 text1 = tk.StringVar()
@@ -88,10 +91,10 @@ text4 = tk.StringVar()
 text5 = tk.StringVar()
 
 # 캔버스 (중앙 프레임 안에)
-canvas = tk.Canvas(right_frame, width=CANVAS_WIDTH * PIXEL_SIZE, height=(CANVAS_HEIGHT+2) * PIXEL_SIZE, bg='light gray', bd=0, highlightthickness=0)
+canvas = tk.Canvas(right_frame, width=CANVAS_WIDTH * PIXEL_SIZE, height=(CANVAS_HEIGHT) * PIXEL_SIZE, bg='light gray', bd=0, highlightthickness=0)
 canvas.pack(padx=20, pady=5)
 
-text5.set("⭐검은색 테두리 추천!")
+text5.set("⭐가이드에 맞춰 그리세요!")
 label1 = tk.Label(guide_frame, textvariable=text1, font=("HY헤드라인M", 15), fg="red", bg="white")
 label1.place(x=16, y=15)
 label2 = tk.Label(guide_frame, textvariable=text2, font=("HY헤드라인M", 15), fg="red", bg="white")
@@ -100,7 +103,7 @@ label3 = tk.Label(guide_frame, textvariable=text3, font=("HY헤드라인M", 15),
 label3.place(x=16, y=115)
 label4 = tk.Label(guide_frame, textvariable=text4, font=("HY헤드라인M", 15), fg="red", bg="white")
 label4.place(x=16, y=165)
-label5 = tk.Label(guide_frame, textvariable=text5, font=("HY헤드라인M", 15), fg="pink", bg="white")
+label5 = tk.Label(guide_frame, textvariable=text5, font=("HY헤드라인M", 15), fg="black", bg="white")
 label5.place(x=14, y=210)
 
 #가이드 텍스트
@@ -281,10 +284,12 @@ def check_x_properly_drawn(x):
              return True
     return False
 
+#클릭 캔버스랑 연결
+canvas.bind("<B1-Motion>", drawing_grid)
+canvas.bind("<Button-1>", drawing_grid)
+
 def save_and_show():
-    #saved_path
     save_image(grid_colors)
-    #show_save_popup(root, saved_path)
 
 save_button = tk.Button(root, text="저장!", command=save_and_show, width=5, height=1, font=("HY헤드라인M", 15), fg="green")
 
@@ -293,7 +298,7 @@ def step1():
     global is_there_pixel_head, is_there_pixel_body, is_there_pixel_foot, linked_line #전역 변수 사용
     #is_there_pixel_head = check_properly_drawn(0, 16)
     if(is_there_pixel_head and is_there_pixel_body and is_there_pixel_foot and linked_line):
-        save_button.place(x=292, y=245)  # 화면에 띄우기 forget()
+        save_button.place(x=292, y=52)  # 화면에 띄우기 forget()
     else:
         save_button.place_forget()
 
@@ -337,9 +342,7 @@ def step1():
     root.after(80, step1)
 
 step1()
-#클릭 캔버스랑 연결
-canvas.bind("<B1-Motion>", drawing_grid)
-canvas.bind("<Button-1>", drawing_grid)
+
 
 
 #머리, 몸통, 다리
