@@ -42,3 +42,4 @@ def show_dino_popup():
     # 이미지가 사라지지 않도록 참조 유지
     canvas.image1 = dino_bg_image
     canvas.image2 = custom_dino_image
+
