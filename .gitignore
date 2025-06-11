@@ -1,6 +1,6 @@
 dino_image/
-
 .venv/
 .idea/
 __pycache__/
 *.pyc
+current_image/

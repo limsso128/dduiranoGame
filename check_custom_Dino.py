@@ -37,7 +37,7 @@ def show_dino_popup():
     resized_image = custom_dino_image.resize((130, 145), Image.NEAREST)
     mirrored_image = ImageOps.mirror(resized_image)
     custom_dino_image = ImageTk.PhotoImage(mirrored_image)
-    canvas.create_image(30, 130, image=custom_dino_image, anchor="nw")
+    canvas.create_image(30, 110, image=custom_dino_image, anchor="nw")
 
     # 이미지가 사라지지 않도록 참조 유지
     canvas.image1 = dino_bg_image
