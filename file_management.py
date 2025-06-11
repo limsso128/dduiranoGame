@@ -62,7 +62,7 @@ def save_image(grid_colors, block_size=1):
         for x in range(18, 42):  #가로 19~42
             moved_grid2[y - 1][x] = grid_colors[y][x]
     #아래 공백
-    for x in range(20, 42):
+    for x in range(18, 42):
         moved_grid2[44][x] = "empty"
 
     draw_image(moved_grid2, "custom1_2.png")
