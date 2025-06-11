@@ -1,1 +1,5 @@
 dino_image/
+
+.venv/
+__pycache__/
+.idea/
