@@ -4,6 +4,7 @@ from tkinter import ttk
 import pygame
 
 # =========== 사운드 초기화 =============
+
 pygame.mixer.init()
 pygame.mixer.music.load("--BGM 파일 경로--")
 pygame.mixer.music.play(-1)
