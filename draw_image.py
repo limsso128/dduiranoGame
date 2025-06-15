@@ -11,12 +11,13 @@ from file_management import show_choice_slot
 
 
 def show_drawing_screen():
+    # 전역 변수들을 함수 내부에서 선언
     is_there_pixel_head = False
     is_there_pixel_body = False
     is_there_pixel_foot = False
     linked_line = False
 
-    window = tk.Toplevel()  # 새 창 생성 (메인 window 위에 뜨는 서브 창)
+    window = tk.Toplevel()
     window.geometry("1100x765+0+0")
     window.overrideredirect(False)
     window.title("Draw Image")
@@ -28,8 +29,8 @@ def show_drawing_screen():
     PIXEL_SIZE = 15
 
     grid_colors = [["empty" for _ in range(CANVAS_WIDTH)] for _ in range(CANVAS_HEIGHT)]
-    draw_log = []  # 선 저장 (x, y, 색) -> 이제 액션 단위로 저장
-    # 수정: 현재 드래그 세션에서 변경된 픽셀들을 임시 저장
+    draw_log = []  #선 저장 (x, y, 색) -> 액션 단위ㅡ저장
+    # 변경된 픽셀들을 임시 저장
     current_action_log = []  # 현재 클릭/드래그 액션에서 변경된 픽셀들
     is_dragging = False  # 드래그 상태 추적
 
@@ -141,14 +142,14 @@ def show_drawing_screen():
                                         (i + 1) * PIXEL_SIZE, (j + 1) * PIXEL_SIZE,
                                         outline='', fill='#d4d5d6')
 
-    #마우스 버튼이 눌렸을 때
+    # 마우스 버튼이 눌렸을 때
     def start_drawing(event):
         nonlocal is_dragging, current_action_log
         is_dragging = True
         current_action_log = []  # 새로운 액션 시작
         drawing_grid(event)  # 첫 번째 픽셀 그리기
 
-    #마우스 버튼이 떼어졌을 때
+    # 마우스 버튼이 떼어졌을 때
     def end_drawing(event):
         nonlocal is_dragging, current_action_log, draw_log
         if is_dragging and current_action_log:
@@ -175,7 +176,8 @@ def show_drawing_screen():
                 checking_cantFill_box()
         else:
             if current_color == '#d4d5d6':  # 지우개
-                # 수정: f grid_colors[y][x] != "empty" and not any(log[0] == x and log[1] == y for log in current_action_log):
+                #이미 변경된 픽셀이 아닐 때
+                if grid_colors[y][x] != "empty" and not any(log[0] == x and log[1] == y for log in current_action_log):
                     current_action_log.append((x, y, grid_colors[y][x]))
 
                 grid_colors[y][x] = "empty"
