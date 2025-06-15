@@ -1,9 +1,8 @@
-#공룡 그림 확인창 (없어도 되는데 퀄리티 업을 위해 존재 (지연))
 import tkinter as tk
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk
 
-def show_dino_popup():
-    dinoCheckPopup = tk.Toplevel()  # ✅ 반드시 Toplevel 사용
+def show_dino_popup(slot):
+    dinoCheckPopup = tk.Toplevel()
     dinoCheckPopup.geometry("400x400")
     dinoCheckPopup.resizable(False, False)
     dinoCheckPopup.title("Draw Image")
@@ -29,17 +28,18 @@ def show_dino_popup():
     # 배경 이미지
     dino_bg_image = Image.open("./images/checkBG.png").convert("RGBA")
     resized_image = dino_bg_image.resize((canvasWidth, canvasHeight), Image.NEAREST)
-    dino_bg_image = ImageTk.PhotoImage(resized_image)
-    canvas.create_image(0, 0, image=dino_bg_image, anchor="nw")
+    dino_bg_image_tk = ImageTk.PhotoImage(resized_image)
+    canvas.create_image(0, 0, image=dino_bg_image_tk, anchor="nw")
 
-    # 사용자 공룡 이미지
-    custom_dino_image = Image.open("./dino_image/custom1.png").convert("RGBA")
+    # 사용자 공룡 이미지 — 슬롯 폴더 경로 반영
+    custom_dino_path = f"./dino_image/{slot}/custom1.png"
+    custom_dino_image = Image.open(custom_dino_path).convert("RGBA")
     resized_image = custom_dino_image.resize((130, 145), Image.NEAREST)
-    mirrored_image = ImageOps.mirror(resized_image)
-    custom_dino_image = ImageTk.PhotoImage(mirrored_image)
-    canvas.create_image(30, 110, image=custom_dino_image, anchor="nw")
+    custom_dino_image_tk = ImageTk.PhotoImage(resized_image)
+    canvas.create_image(30, 110, image=custom_dino_image_tk, anchor="nw")
 
-    # 이미지가 사라지지 않도록 참조 유지
-    canvas.image1 = dino_bg_image
-    canvas.image2 = custom_dino_image
+    # 이미지 참조 유지 (중요)
+    dinoCheckPopup.bg_image = dino_bg_image_tk
+    dinoCheckPopup.custom_image = custom_dino_image_tk
+
 

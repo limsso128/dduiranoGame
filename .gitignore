@@ -4,3 +4,4 @@ dino_image/
 __pycache__/
 *.pyc
 current_image/
+settings/
