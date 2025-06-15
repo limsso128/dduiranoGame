@@ -11,7 +11,6 @@ from file_management import show_choice_slot
 
 
 def show_drawing_screen():
-    # 전역 변수들을 함수 내부에서 선언
     is_there_pixel_head = False
     is_there_pixel_body = False
     is_there_pixel_foot = False
@@ -29,7 +28,10 @@ def show_drawing_screen():
     PIXEL_SIZE = 15
 
     grid_colors = [["empty" for _ in range(CANVAS_WIDTH)] for _ in range(CANVAS_HEIGHT)]
-    draw_log = []  # 선 저장 (x, y, 색)
+    draw_log = []  # 선 저장 (x, y, 색) -> 이제 액션 단위로 저장
+    # 수정: 현재 드래그 세션에서 변경된 픽셀들을 임시 저장
+    current_action_log = []  # 현재 클릭/드래그 액션에서 변경된 픽셀들
+    is_dragging = False  # 드래그 상태 추적
 
     start_drag = False
     end_drag = False
@@ -139,9 +141,25 @@ def show_drawing_screen():
                                         (i + 1) * PIXEL_SIZE, (j + 1) * PIXEL_SIZE,
                                         outline='', fill='#d4d5d6')
 
-    # 그림 그리기(클릭, 드래그)
+    #마우스 버튼이 눌렸을 때
+    def start_drawing(event):
+        nonlocal is_dragging, current_action_log
+        is_dragging = True
+        current_action_log = []  # 새로운 액션 시작
+        drawing_grid(event)  # 첫 번째 픽셀 그리기
+
+    #마우스 버튼이 떼어졌을 때
+    def end_drawing(event):
+        nonlocal is_dragging, current_action_log, draw_log
+        if is_dragging and current_action_log:
+            # 현재 액션의 모든 변경사항을 draw_log에 추가
+            draw_log.append(current_action_log.copy())
+            current_action_log = []
+        is_dragging = False
+
+    # 그림 그리기(클릭, 드래그) - 수정됨
     def drawing_grid(event):
-        nonlocal current_color, fill_mode  # nonlocal 사용
+        nonlocal current_color, fill_mode, current_action_log  # nonlocal 사용
         x = event.x // PIXEL_SIZE
         y = event.y // PIXEL_SIZE
 
@@ -157,6 +175,9 @@ def show_drawing_screen():
                 checking_cantFill_box()
         else:
             if current_color == '#d4d5d6':  # 지우개
+                # 수정: f grid_colors[y][x] != "empty" and not any(log[0] == x and log[1] == y for log in current_action_log):
+                    current_action_log.append((x, y, grid_colors[y][x]))
+
                 grid_colors[y][x] = "empty"
                 # 그린 도형만 delete
                 overlapping = canvas.find_overlapping(
@@ -166,26 +187,20 @@ def show_drawing_screen():
                 for item in overlapping:
                     if "draw" in canvas.gettags(item):
                         canvas.delete(item)
-                draw_log.append((x, y, grid_colors[y][x]))
                 grid_colors[y][x] = "empty"
             # 기본 그리기 모드
             else:
-                if grid_colors[y][x] != current_color:
-                    draw_log.append((x, y, grid_colors[y][x]))  # 변경 전 색상 저장
-                    grid_colors[y][x] = current_color
-                    canvas.create_rectangle(
-                        x * PIXEL_SIZE, y * PIXEL_SIZE,
-                        (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE,
-                        fill=current_color, outline="",
-                        tags="draw"
-                    )
+                #색상이 다를 때만 로그에 추가
+                if grid_colors[y][x] != current_color and not any(
+                        log[0] == x and log[1] == y for log in current_action_log):
+                    current_action_log.append((x, y, grid_colors[y][x]))  # 변경 전 색상 저장
 
                 grid_colors[y][x] = current_color
                 canvas.create_rectangle(
                     x * PIXEL_SIZE, y * PIXEL_SIZE,
                     (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE,
                     fill=current_color, outline="",
-                    tags="draw"  #
+                    tags="draw"
                 )
 
     # 선 연결 확인
@@ -212,36 +227,45 @@ def show_drawing_screen():
                 )
         canvas.tag_raise(image_id)
 
+    # 수정: Undo 함수 - 액션 단위로 되돌리기
     def undo():
+        nonlocal draw_log
         if not draw_log:
             return
-        x, y, old_color = draw_log.pop()
-        grid_colors[y][x] = old_color
-        # 기존 드로우 제거
-        overlapping = canvas.find_overlapping(
-            x * PIXEL_SIZE, y * PIXEL_SIZE,
-            (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE
-        )
-        for item in overlapping:
-            if "draw" in canvas.gettags(item):
-                canvas.delete(item)
-        if old_color != "empty":
-            canvas.create_rectangle(
+
+        # 마지막 액션의 모든 변경사항을 되돌리기
+        last_action = draw_log.pop()
+        for x, y, old_color in reversed(last_action):  # 역순으로 되돌리기
+            grid_colors[y][x] = old_color
+            # 기존 드로우 제거
+            overlapping = canvas.find_overlapping(
                 x * PIXEL_SIZE, y * PIXEL_SIZE,
-                (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE,
-                fill=old_color, outline="",
-                tags="draw"
+                (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE
             )
+            for item in overlapping:
+                if "draw" in canvas.gettags(item):
+                    canvas.delete(item)
+
+            # 이전 색상으로 복원 (empty가 아닌 경우)
+            if old_color != "empty":
+                canvas.create_rectangle(
+                    x * PIXEL_SIZE, y * PIXEL_SIZE,
+                    (x + 1) * PIXEL_SIZE, (y + 1) * PIXEL_SIZE,
+                    fill=old_color, outline="",
+                    tags="draw"
+                )
 
     window.bind("<Control-z>", lambda event: undo())
 
-    # 채우기 로직
+    #채우기
     def flood_fill(x, y, target_color, replacement_color, tags):
+        nonlocal current_action_log
         if target_color == replacement_color:
             return
 
         stack = [(x, y)]
         drawn_points = set()
+        fill_action_log = []  # 채우기 액션을 위한 별도 로그
 
         while stack:
             cx, cy = stack.pop()
@@ -251,7 +275,7 @@ def show_drawing_screen():
                 continue
 
             if (cx, cy) not in drawn_points:
-                draw_log.append((cx, cy, grid_colors[cy][cx]))
+                fill_action_log.append((cx, cy, grid_colors[cy][cx]))  # 수정: fill_action_log에 추가
                 drawn_points.add((cx, cy))
 
             grid_colors[cy][cx] = replacement_color
@@ -267,6 +291,10 @@ def show_drawing_screen():
                 (cx, cy + 1), (cx, cy - 1)
             ])
 
+        #채우기 액션을 draw_log에 즉시 추가
+        if fill_action_log:
+            draw_log.append(fill_action_log)
+
     # 행에 픽셀이 그려져 있는지 확인
     def check_y_properly_drawn(start_y, end_y):
         for y in range(start_y, end_y):
@@ -281,9 +309,10 @@ def show_drawing_screen():
                 return True
         return False
 
-    # 클릭 캔버스랑 연결
-    canvas.bind("<B1-Motion>", drawing_grid)
-    canvas.bind("<Button-1>", drawing_grid)
+    # 수정: 이벤트 바인딩 변경 - 마우스 버튼 누름/뗌을 별도로 처리
+    canvas.bind("<Button-1>", start_drawing)  # 마우스 버튼 누를 때
+    canvas.bind("<B1-Motion>", drawing_grid)  # 드래그할 때
+    canvas.bind("<ButtonRelease-1>", end_drawing)  # 마우스 버튼 뗄 때
 
     def save_and_show():
         show_choice_slot(grid_colors)
@@ -377,8 +406,6 @@ def show_drawing_screen():
     def checking_cantFill_box():
         messagebox.showinfo("잠시만요!", "지우개는 채울 수 없어요")  # showinfo로 변경
 
-    def save_Line():
-        pass  # 빈 함수 구현
 
     # 버튼 여러 개 넣기 (예: 6개를 2행 3열로)
     colors = ["#ffb0b0", "#ff5959", "#ff0000", "#b50000", "#6b0000",
